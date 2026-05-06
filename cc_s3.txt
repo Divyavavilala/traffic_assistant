@@ -1,0 +1,294 @@
+Android App Traffic Analysis
+
+-Android studio -> more actions -> virtual device manager
+- click + then choose Pixel 2 ->api 33 , services: google apis -> finish
+- After downloading, click on play button, wait for emulator to open
+
+If not opening:
+cd C:\Users\Admin\AppData\Local\Android\Sdk\emulator 
+emulator -list-avds 
+emulator -avd Pixel_9 -http-proxy http://10.0.2.2:8080 
+
+- In emulator : Settings -> Network & Internet -> Internet -> Click connected wifi -> edit -> advanced options -> Proxy → Manual
+Hostname → 10.0.2.2
+Port → 8081 -> Save
+
+-Outside: Open burp suite -> Burp → Proxy → Proxy settings → Proxy Listeners → Select existing listener (usually 127.0.0.1:8080) -> Edit → Bind to → All interfaces → Port → 8081 (or 8080 if free) → OK
+
+Burp → Proxy → Intercept → Intercept ON
+
+Emulator → Chrome
+→ type → http://neverssl.com
+
+Burp → Proxy → HTTP history
+→ Requests visible ✔
+
+If not visible:
+Turn off intercept,
+cmd: cd C:\Users\tnksi\AppData\Local\Android\Sdk\platform-tools
+adb devices ,
+adb shell settings put global http_proxy 10.0.2.2:8080 ,
+adb shell settings get global http_proxy , search again
+
+-Burp suite -> proxy settings -> search import/export ca certificate -> select certificate in der format -> browse and choose downloads -> name = burpcer.der -> create
+
+-Open cmd , 
+cd C:\Users\tnksi\AppData\Local\Android\Sdk\platform-tools
+adb push C:\Users\tnksi\Downloads\burpcer.der /sdcard/Download/
+
+-Inside emulator: settings -> security -> more security -> Encryption & credentials -> Install a certificate -> CA cert -> Install anyway -> in downloads choose burpcer.der
+
+Emulator → Chrome
+→ type → https://example.com
+
+Burp → HTTP history
+→ HTTPS visible ✔
+
+
+
+
+------------------------------------
+
+
+
+Testing IoT Device Security (Default Passwords & Open Ports)
+
+-Open docker desktop
+-open cmd -> docker run -d -p 8090:3000 --name juiceshop bkimminich/juice-shop
+-localhost:8090 in chrome
+-ipconfig in cmd and copy ipv4 address
+-open kali Linux terminal
+nmap localhost
+nmap -sV 192.168.0.148
+-in chrome logout and login into juiceshop
+admin@juice-sh.op    admin123
+jim@juice-sh.op      ncc-1701
+-right click -> inspect -> network -> refresh -> apply fetch/xhr filter -> plaintext requests are seen
+
+
+-------------------------------------
+
+
+Creating and Analyzing Disk Images Using dc3dd and Autopsy (Alternative to FTK Imager) 
+
+rm -f practice_disk.dd disk_image.dd acquisition.log (only if these files already exist)
+
+dd if=/dev/zero of=practice_disk.dd bs=1M count=100
+
+mkfs.ext4 practice_disk.dd
+
+sudo mkdir -p /mnt/practice
+
+sudo mount -o loop practice_disk.dd /mnt/practice
+
+echo "Cybersecurity Lab Evidence" | sudo tee /mnt/practice/evidence.txt
+
+ls /mnt/practice
+
+dc3dd if=practice_disk.dd of=disk_image.dd hash=md5 log=acquisition.log
+
+ls
+
+sudo autopsy
+
+-open http://localhost:9999/autopsy
+
+-new case -> name = CyberForensicLab -> give description and add a name(sindhu)
+
+- Add host name= KaliLabMachine and give description 
+-Add image -> /home/kali/disk_image.dd , select partition , symlink
+-choose calculate hash value , verify hash -> add
+
+-Click analyse ->keyword search -> type "evidence" , choose ascii Unicode
+-click on blue colour ascii
+
+
+
+
+---------------------------
+
+
+LOG FILE ANALYSIS FOR INCIDENT DETECTION LAB
+
+open terminal in kali Linux
+
+-navigate to log dir
+cd /var/log
+ls
+sudo less /var/log/dpkg.log , press q to exit
+
+-capture login history
+last
+
+-System Logs using journalctl
+-logs output
+journalctl | less
+
+-Failed SSH Attempts
+journalctl | grep "Failed"
+
+-SSH Login Activity
+journalctl | grep ssh
+
+-Error Detection
+journalctl | grep -i error
+
+-Apache Log Analysis
+cd /var/log/apache2 
+ls
+sudo less access.log
+
+-Suspicious Requests
+-failed web requests (404 errors)
+grep "404" /var/log/apache2/access.log
+
+-Package Activity
+less /var/log/dpkg.log
+
+-Real-Time Monitoring
+sudo journalctl -f
+
+-SIMULATE FAILED SSH LOGIN
+sudo apt install openssh-server -y
+sudo service ssh start
+ip a
+ssh fakeuser@localhost
+ssh kali@localhost
+
+-Check Failed Logins
+journalctl | grep "Failed password"
+
+-Extract Suspicious IP
+journalctl | grep "Failed password" | awk '{print $11}'
+
+-Count Attempts Per IP
+journalctl | grep "Failed password" | awk '{print $11}' | sort | uniq -c | sort -nr
+
+sudo lastb
+
+journalctl --since "10 minutes ago"
+
+
+
+------------------------------------------
+
+
+
+NETWORK FORENSICS USING WIRESHARK
+
+-open kali Linux terminal and type
+wireshark &
+-wireshark will open
+-select eth0
+-in filter type and apply:
+tcp
+ip.addr == 192.168.0.161 → filters packets of a specific IP
+ip.src== 192.168.0.161
+-Right click on any TCP packet->Follow->TCP Stream
+-Open terminal and type 
+nmap –sS 192.168.0.156 (windows ip)
+-In wireshark, go to Statistics and choose:
+Capture File Properties
+Resolved Address
+Protocol Hierarchy Statistics
+Conversations
+Packet Length
+End Points
+Statistics-> I/O Graphs
+
+
+----------------------------------------------
+
+
+Privacy Audit of Popular Apps (Desktop WhatsApp) and Websites (Facebook) & Data Breach Case Study Analysis
+ 
+->In Kali linux ->terminal
+ sudo apt update
+ sudo apt install nodejs npm –y
+->Install nativefier
+ sudo npm install -g nativefier
+
+Part 1) WhatsApp
+in terminal:
+ nativefier https://web.whatsapp.com
+->folder is created ->web-whatsapp-linux-x64
+  cd that path -> cd WhatsAppWeb-linux-x64 (./WhatsAppWeb if url doesn't open)
+
+open url ->Login through whatsapp scan using mobile
+->Open firefox and go to - 
+   https://reports.exodus-privacy.eu.org 
+->Search for WhatsApp ->choose whtsp web -> Number of trackers, Permissions used
+
+->Start Wireshark -> Select interface (eth0 / wlan0) ->Click Start Capture
+->Generate Traffic -> in whatsapp web send messages, images
+->Apply filters->use - tls, dns
+
+Part 2) Facebook
+->Login using test account
+->Start burp suite -> check proxy listeners 127.0.0.1 8080
+in firefox -> settings -> network settings -> manual proxy config
+http proxy - 127.0.0.1, port = 8080
+
+- in burpsuite turn on intercept and see traffic
+-in browser right click -> inspect -> network
+
+ https://haveibeenpwned.com 
+Enter email → check breach status 
+
+
+
+
+----------------------------------------
+
+
+Conducting a Security Audit and Risk Assessment
+
+1 System info
+windows+R -> msinfo32
+
+2: Check Windows Updates
+Open Settings -> Windows Update -> Click Check for updates
+
+3: Check Firewall Status
+Search: Windows Defender Firewall
+Click Turn Windows Defender Firewall on or off
+
+4 Check Antivirus (Windows Security)
+Open Windows Security
+Go to Virus & Threat Protection
+Real-time protection → ON
+Last scan → Recent
+
+5: Check Password & Account Security
+Settings → Accounts → Sign-in options
+Password / PIN enabled
+Windows Hello (optional)
+
+6: Check Installed Applications
+Settings → Apps → Installed apps
+Look for:
+Unknown software
+Cracked tools
+
+7: Check Startup Programs
+Press Ctrl + Shift + Esc
+Go to Startup tab
+Disable: Unknown apps
+
+8: Check Network Security
+Settings → Network & Internet
+Check:
+WiFi connection
+Network type → Private/Public
+
+9: Check Browser Security
+Steps (Chrome/Edge):
+Go to Settings → Privacy & Security
+Check:
+Safe browsing ON
+Remove unknown extensions
+
+10: Check Data Backup
+Search: Backup settings
+Check:
+OneDrive / External backup
